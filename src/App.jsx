@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import "./App.css";
 import axios from "axios";
-import { Button, Radio, Textarea, TextInput } from "@mantine/core";
+import {
+  Alert,
+  Button,
+  Group,
+  Modal,
+  Textarea,
+  TextInput,
+  Checkbox,
+} from "@mantine/core";
 
 function App() {
   const [data, setData] = useState([]);
@@ -12,24 +18,74 @@ function App() {
   const [task, setTask] = useState("");
   const [description, setDescription] = useState("");
   const [checked, setChecked] = useState(false);
+  const [completedTasks, setCompletedTasks] = useState({});
+
+  const [editmodal, setEditmodal] = useState(false);
 
   useEffect(() => {
-    axios.get("http://localhost:3000/users").then((res) => {
+    axios.get("http://localhost:3000/duties").then((res) => {
       console.log(res.data);
       setData(res.data);
+      const initialCompletedTasks = res.data.reduce((acc, item) => {
+        acc[item.id] = item.completed;
+        return acc;
+      }, {});
+      setCompletedTasks(initialCompletedTasks);
     });
     const todays = new Date().toLocaleDateString();
     setToday(todays);
   }, []);
 
-  const [selectede, setSelectede] = useState(null);
+  async function addDuty(newData) {
+    try {
+      const response = await axios.post(
+        "http://localhost:3000/dutyadd",
+        newData
+      );
+      console.log("Sunucudan gelen yanıt:", response.data);
+      if (response.data) {
+        setData([...data, newData]);
+        setTask("");
+        setDescription("");
+        setSelected(false);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
-  const handleChange = (e) => {
-    setSelectede(e.target.value);
+  const deleteDuty = async (id) => {
+    try {
+      const response = await axios.delete("http://localhost:3000/dutydelete", {
+        data: { id: id },
+      });
+      console.log("Veri silindi:", response.data);
+      if (response.data) {
+        // Veriyi silip UI'ı güncelle
+        setData(data.filter((item) => item.id !== id));
+      }
+    } catch (error) {
+      console.error("Hata:", error);
+    }
   };
 
-  const handleUncheck = () => {
-    setSelectede(null); // Radio butonunu uncheck yapar
+  const toggleTaskCompletion = async (id) => {
+    const updatedData = data.map((item) =>
+      item.id === id ? { ...item, completed: !item.completed } : item
+    );
+    setData(updatedData);
+
+    try {
+      await axios.put(`http://localhost:3000/update-completed`, {
+        completed: !completedTasks[id],
+      });
+      setCompletedTasks((prev) => ({
+        ...prev,
+        [id]: !prev[id],
+      }));
+    } catch (error) {
+      console.error("Hata:", error);
+    }
   };
 
   return (
@@ -90,6 +146,19 @@ function App() {
             <Button
               variant="light"
               className="w-[100%] bg-[#EFEFEF] items-center justify-center p-4 px-4 py-2 rounded-lg shadow-[0_4px_10px_rgba(0,0,0,0.25)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.3)] transition-shadow mt-4"
+              onClick={() => {
+                const newdata = {
+                  id: data.length + 1,
+                  duty: task,
+                  description: description,
+                };
+
+                if (task == "") {
+                  alert("Görev adı boş olamaz");
+                } else {
+                  addDuty(newdata);
+                }
+              }}
             >
               Ekle
             </Button>
@@ -104,26 +173,35 @@ function App() {
               key={item.id}
               className="flex items-center justify-between p-4 mt-4 rounded-lg shadow-[0_4px_10px_rgba(0,0,0,0.25)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.3)] transition-shadow"
             >
-              <input
-                type="radio"
-                value="1"
-                checked={selectede === "1"}
-                onChange={handleChange}
-              />
-              <div>
-                <p>{item.task}</p>
-                <p>{item.description}</p>
+              <div className="w-3/4">
+                <div className="flex flex-row">
+                  <Checkbox
+                    checked={item.completed}
+                    onChange={() => toggleTaskCompletion(item.id)}
+                    className="mr-4"
+                  />
+                  <div>
+                    <p className="font-semibold">{item.duty}</p>
+                    <p className="text-xs">{item.description}</p>
+                  </div>
+                </div>
               </div>
-              <div className="">
+              <div className="w-1/4 flex items-center justify-end">
                 <Button
                   variant="light"
                   className="mr-6 bg-[#EFEFEF] items-center justify-center p-4 px-4 py-2 rounded-lg shadow-[0_4px_10px_rgba(0,0,0,0.25)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.3)] transition-shadow"
+                  onClick={() => {
+                    setEditmodal(true);
+                  }}
                 >
                   Düzenle
                 </Button>
                 <Button
                   variant="light"
                   className="bg-[#EFEFEF] items-center justify-center p-4 px-4 py-2 rounded-lg shadow-[0_4px_10px_rgba(0,0,0,0.25)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.3)] transition-shadow"
+                  onClick={() => {
+                    deleteDuty(item.id);
+                  }}
                 >
                   Sil
                 </Button>
@@ -132,6 +210,19 @@ function App() {
           ))}
         </div>
       </div>
+
+      <Modal
+        opened={editmodal}
+        onClose={() => setEditmodal(false)}
+        size="auto"
+        title="Modal size auto"
+        className="bg-[#EFEFEF] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+      >
+        <Group mt="xl">
+          <Button>Add badge</Button>
+          <Button>Remove badge</Button>
+        </Group>
+      </Modal>
     </>
   );
 }
