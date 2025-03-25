@@ -69,25 +69,6 @@ function App() {
     }
   };
 
-  const toggleTaskCompletion = async (id) => {
-    const updatedData = data.map((item) =>
-      item.id === id ? { ...item, completed: !item.completed } : item
-    );
-    setData(updatedData);
-
-    try {
-      await axios.put(`http://localhost:3000/update-completed`, {
-        completed: !completedTasks[id],
-      });
-      setCompletedTasks((prev) => ({
-        ...prev,
-        [id]: !prev[id],
-      }));
-    } catch (error) {
-      console.error("Hata:", error);
-    }
-  };
-
   return (
     <>
       <div className="flex bg-blue-800 w-full p-4">
@@ -175,11 +156,6 @@ function App() {
             >
               <div className="w-3/4">
                 <div className="flex flex-row">
-                  <Checkbox
-                    checked={item.completed}
-                    onChange={() => toggleTaskCompletion(item.id)}
-                    className="mr-4"
-                  />
                   <div>
                     <p className="font-semibold">{item.duty}</p>
                     <p className="text-xs">{item.description}</p>
