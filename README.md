@@ -1,4 +1,4 @@
-# FrontendU - React + Vite
+# To-Do App
 
 Bu proje, bir iş mülakatı kapsamında geliştirilmiş bir To-Do uygulamasıdır. Proje, modern React ve Vite teknolojileri kullanılarak oluşturulmuştur. Uygulamanın backend kısmı ise ayrı bir repoda yer almaktadır.
 
